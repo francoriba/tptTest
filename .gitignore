@@ -50,6 +50,20 @@ cmake-build-*/
 
 # Conan files
 /conan/
+CMakePresets.json
+*-Target-*.cmake
+*-*-data.cmake
+*Config.cmake
+*ConfigVersion.cmake
+*Targets.cmake
+cmakedeps_*.cmake
+conan_*.cmake
+conanbuild.sh
+conanbuildenv-*.sh
+conandeps_*.cmake
+conanrun.sh
+conanrunenv-*.sh
+deactivate_conan*.sh
 
 # Don't track sonar files
 .scannerwork/

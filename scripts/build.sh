@@ -51,8 +51,9 @@ if command -v conan &> /dev/null; then
         conan profile detect --force
     fi
     
+    # Ejecutar Conan en el directorio build para evitar archivos en la raíz
     cd build
-    conan install .. --build=missing
+    conan install .. --output-folder=. --build=missing
     cd ..
 else
     echo "## Conan no está instalado, se usarán los submódulos."
