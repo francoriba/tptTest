@@ -13,14 +13,16 @@
 #define DEFAULT_INTERVAL 5
 
 // Estructuras para las métricas
-typedef struct {
+typedef struct
+{
     double user;
     double system;
     double idle;
     double usage_percent;
 } cpu_metrics_t;
 
-typedef struct {
+typedef struct
+{
     long total;
     long free;
     long used;
@@ -28,13 +30,15 @@ typedef struct {
     long cached;
 } memory_metrics_t;
 
-typedef struct {
+typedef struct
+{
     double load_1m;
     double load_5m;
     double load_15m;
 } load_metrics_t;
 
-typedef struct {
+typedef struct
+{
     time_t timestamp;
     cpu_metrics_t cpu;
     memory_metrics_t memory;
@@ -43,8 +47,8 @@ typedef struct {
 
 // Funciones principales (para implementar en fases posteriores)
 int init_monitoring_system(void);
-int collect_metrics(system_metrics_t *metrics);
-int save_metrics_to_json(const system_metrics_t *metrics, const char *filepath);
+int collect_metrics(system_metrics_t* metrics);
+int save_metrics_to_json(const system_metrics_t* metrics, const char* filepath);
 void cleanup_monitoring_system(void);
 
 #endif // MONITOREO_H
