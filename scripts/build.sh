@@ -12,20 +12,20 @@ echo "Trabajando en directorio: $(pwd)"
 UNITY_CMAKE="lib/unity/CMakeLists.txt"
 if [ -f "$UNITY_CMAKE" ]; then
     echo "## Verificando configuración de Unity..."
-
+    
     # Comprobar si ya está configurado con el nombre correcto
     if grep -q "unity_framework" "$UNITY_CMAKE"; then
         echo "## Unity ya está configurado correctamente."
     else
         echo "## Corrigiendo configuración de Unity para evitar conflictos de nombres..."
-
+        
         # Hacer una copia de seguridad
         cp "$UNITY_CMAKE" "${UNITY_CMAKE}.bak"
-
+        
         # Reemplazar el nombre del proyecto y del target
         sed -i 's/project(\s*"unity"/project("unity_framework"/g' "$UNITY_CMAKE"
         sed -i 's/add_library(${PROJECT_NAME}/add_library(unity_framework/g' "$UNITY_CMAKE"
-
+        
         echo "## Configuración de Unity corregida."
     fi
 fi
@@ -39,6 +39,24 @@ else
     echo "## Directorio 'build' no encontrado en $(pwd)"
     echo "## Creando directorio build"
     mkdir build
+fi
+
+# Verificar si Conan está instalado
+if command -v conan &> /dev/null; then
+    echo "## Conan está instalado, configurando dependencias..."
+    
+    # Verificar si existe un perfil por defecto
+    if [ ! -f "$HOME/.conan2/profiles/default" ]; then
+        echo "## No se encontró perfil por defecto de Conan, creando uno..."
+        conan profile detect --force
+    fi
+    
+    cd build
+    conan install .. --build=missing
+    cd ..
+else
+    echo "## Conan no está instalado, se usarán los submódulos."
+    echo "## Para instalar Conan: pip install conan"
 fi
 
 echo "Compilando proyecto..."
