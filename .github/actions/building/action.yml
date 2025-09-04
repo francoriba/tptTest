@@ -19,26 +19,36 @@ runs:
     - name: Fix Unity CMakeLists.txt
       shell: bash
       run: |
-            UNITY_CMAKE="lib/unity/CMakeLists.txt"
-            if [ -f "$UNITY_CMAKE" ]; then
-                echo "## Verificando configuración de Unity..."
-                
-                # Comprobar si ya está configurado con el nombre correcto
-                if grep -q "unity_framework" "$UNITY_CMAKE"; then
-                    echo "## Unity ya está configurado correctamente."
-                else
-                    echo "## Corrigiendo configuración de Unity para evitar conflictos de nombres..."
-                    
-                    # Hacer una copia de seguridad
-                    cp "$UNITY_CMAKE" "${UNITY_CMAKE}.bak"
-                    
-                    # Reemplazar el nombre del proyecto y del target
-                    sed -i 's/project(\s*"unity"/project("unity_framework"/g' "$UNITY_CMAKE"
-                    sed -i 's/add_library(${PROJECT_NAME}/add_library(unity_framework/g' "$UNITY_CMAKE"
-                    
-                    echo "## Configuración de Unity corregida."
-                fi
-            fi
+            # Reemplazar completamente el archivo CMakeLists.txt de Unity con una versión simplificada
+            cat > lib/unity/CMakeLists.txt << 'EOL'
+            cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
+
+            project(
+                "unity_framework"
+                VERSION 1.0.0
+                DESCRIPTION "Unity testing framework"
+                LANGUAGES C
+            )
+
+            # Define the C standard
+            set(CMAKE_C_STANDARD 17)
+
+            # Include the 'src' directory
+            include_directories(src)
+
+            # Add the source files
+            set(UNITY_SOURCES
+                src/unity.c
+            )
+
+            # Create the library
+            add_library(unity_framework STATIC ${UNITY_SOURCES})
+
+            # Make headers available
+            target_include_directories(unity_framework PUBLIC src)
+            EOL
+            
+            echo "## Unity CMakeLists.txt reemplazado con versión simplificada."
         
     - name: Setup Conan profile
       shell: bash
