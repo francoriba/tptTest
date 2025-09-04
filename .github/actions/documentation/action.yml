@@ -7,6 +7,10 @@ runs:
     - name: Validate documentation
       shell: bash
       run: |
+        # Modificar el Doxyfile para excluir los submódulos
+        sed -i 's/^EXCLUDE\s*=.*/EXCLUDE                = lib build/' Doxyfile
+        sed -i 's/^EXCLUDE_PATTERNS\s*=.*/EXCLUDE_PATTERNS       = *\/lib\/* *\/build\/*/' Doxyfile
+        
         cp Doxyfile Doxyfile.temp
         mkdir -p lib 
 
@@ -19,8 +23,12 @@ runs:
       run: |
         set -e
         ERROR_FILE=$(pwd)/doxygen_errors.log
-        doxygen -s Doxyfile.temp 2> $ERROR_FILE
-
+        # Ejecutar doxygen y filtrar las advertencias de los submódulos
+        doxygen -s Doxyfile.temp 2> $ERROR_FILE.full
+        
+        # Filtrar las advertencias que provienen de lib/
+        grep -v "lib/cjson" $ERROR_FILE.full | grep -v "lib/unity" > $ERROR_FILE || true
+        
         if [ -s "$ERROR_FILE" ]; then
           echo "Doxygen found issues in the documentation:"
           cat "$ERROR_FILE"
@@ -32,7 +40,7 @@ runs:
 
     - name: "Cleanup"
       shell: bash
-      run: rm -f Doxyfile.temp
+      run: rm -f Doxyfile.temp $ERROR_FILE.full
     
     - name: Upload documentation
       if: failure()
