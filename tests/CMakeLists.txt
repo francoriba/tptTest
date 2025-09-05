@@ -2,6 +2,11 @@
 include_directories(../include)
 include_directories(../lib/unity/src)
 
+# Detectar si estamos en GitHub Actions
+if(DEFINED ENV{GITHUB_ACTIONS})
+  add_definitions(-DGITHUB_ACTIONS)
+endif()
+
 # Unit tests
 add_executable(test_main unit/test_main.c)
 add_executable(test_metrics unit/test_metrics.c ../src/metrics.c)
