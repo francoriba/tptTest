@@ -1,48 +1,112 @@
-#include "cJSON.h"
-#include "monitoreo.h"
+/**
+ * @file main.c
+ * @brief Programa principal del sistema de monitoreo
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <signal.h>
+#include "cJSON.h"
+#include "monitoreo.h"
 
-int main()
-{
+// Flag para controlar la ejecución del programa
+volatile sig_atomic_t running = 1;
+
+/**
+ * @brief Manejador de señales para terminar el programa de forma controlada
+ * @param sig Señal recibida
+ */
+void signal_handler(int sig) {
+    (void)sig; // Evitar warning de variable no usada
+    running = 0;
+}
+
+/**
+ * @brief Genera el nombre de archivo para las métricas
+ * @param buffer Buffer donde se escribirá el nombre del archivo
+ * @param size Tamaño del buffer
+ */
+void generate_filename(char* buffer, size_t size) {
+    time_t now = time(NULL);
+    struct tm* tm_info = localtime(&now);
+    
+    snprintf(buffer, size, "%smetrics-%04d%02d%02d.log",
+             DEFAULT_LOG_DIR,
+             tm_info->tm_year + 1900,
+             tm_info->tm_mon + 1,
+             tm_info->tm_mday);
+}
+
+/**
+ * @brief Función principal
+ */
+int main(int argc, char* argv[]) {
+    int interval = DEFAULT_INTERVAL;
+    
+    // Procesar argumentos de línea de comandos
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--interval") == 0 && i + 1 < argc) {
+            interval = atoi(argv[i + 1]);
+            if (interval < 1) {
+                interval = DEFAULT_INTERVAL;
+            }
+            i++;
+        } else if (strcmp(argv[i], "--help") == 0) {
+            printf("Uso: %s [--interval SEGUNDOS]\n", argv[0]);
+            printf("  --interval SEGUNDOS  Intervalo de recolección de métricas (por defecto: %d)\n", DEFAULT_INTERVAL);
+            return EXIT_SUCCESS;
+        }
+    }
+
     printf("=== Sistema de Monitoreo Básico ===\n");
-    printf("Versión 1.0.0\n\n");
-
-    // Test básico de cJSON
-    cJSON* json = cJSON_CreateObject();
-    if (json == NULL)
-    {
-
-        fprintf(stderr, "Error: No se pudo crear objeto JSON\n");
+    printf("Versión %s\n\n", MONITOREO_VERSION);
+    
+    // Configurar manejador de señales
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);
+    
+    // Inicializar el sistema de monitoreo
+    if (init_monitoring_system() != 0) {
+        fprintf(stderr, "Error al inicializar el sistema de monitoreo\n");
         return EXIT_FAILURE;
     }
-
-    // Agregar timestamp actual
-    time_t current_time = time(NULL);
-    cJSON* timestamp = cJSON_CreateNumber((double)current_time);
-
-    cJSON_AddItemToObject(json, "timestamp", timestamp);
-
-    // Agregar mensaje de prueba
-    cJSON* message = cJSON_CreateString("Hello World - Sistema funcionando correctamente");
-    cJSON_AddItemToObject(json, "message", message);
-
-    // Imprimir JSON
-    char* json_string = cJSON_Print(json);
-    if (json_string != NULL)
-    {
-        printf("JSON de prueba:\n%s\n", json_string);
-        free(json_string);
+    
+    printf("Sistema de monitoreo iniciado.\n");
+    printf("Intervalo de recolección: %d segundos\n", interval);
+    printf("Directorio de logs: %s\n", DEFAULT_LOG_DIR);
+    printf("Presione Ctrl+C para detener\n\n");
+    
+    // Bucle principal de recolección de métricas
+    system_metrics_t metrics;
+    char filename[256];
+    
+    while (running) {
+        // Generar nombre de archivo para las métricas
+        generate_filename(filename, sizeof(filename));
+        
+        // Recolectar métricas
+        if (collect_metrics(&metrics) == 0) {
+            // Guardar métricas en formato JSON
+            if (save_metrics_to_json(&metrics, filename) == 0) {
+                printf("Métricas recolectadas y guardadas en %s\n", filename);
+            } else {
+                fprintf(stderr, "Error al guardar métricas\n");
+            }
+        } else {
+            fprintf(stderr, "Error al recolectar métricas\n");
+        }
+        
+        // Esperar hasta el próximo intervalo
+        sleep((unsigned int)interval);
     }
-
-    // Limpiar memoria
-    cJSON_Delete(json);
-
-    printf("\n✅ Test básico completado exitosamente\n");
-    printf("📋 cJSON está funcionando correctamente\n");
-    printf("🔧 El proyecto está listo para desarrollo\n");
-
+    
+    // Limpiar recursos
+    cleanup_monitoring_system();
+    
+    printf("\n✅ Sistema de monitoreo detenido\n");
+    
     return EXIT_SUCCESS;
 }
